@@ -1,0 +1,18 @@
+services:
+
+  postgres:
+    image: postgres:latest
+    restart: always
+    ports:
+    - 5432:5432
+    environment:
+      POSTGRES_DB: escrow_db
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: escrow_admin
+    volumes:
+      - ./sqls/build_db.sql:/docker-entrypoint-initdb.d/build_db.sql
+    healthcheck:
+      test: “CMD-SHELL pg_isready"
+      interval: 1s
+      timeout: 5s
+      retries: 10
