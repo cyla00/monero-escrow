@@ -1,7 +1,18 @@
 package components
 
-templ Footer(year string){
+import (
+	"time"
+    "strconv"
+)
+
+func getYear() int {
+    return time.Now().Year()
+}
+
+var year = strconv.Itoa(getYear())
+
+templ Footer(){
     <footer>
-        footer {year}
+        <p>&copy; Copyright {year} FideXMR</p>
     </footer>
 }
