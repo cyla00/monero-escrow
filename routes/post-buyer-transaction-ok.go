@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func PostLogin(w http.ResponseWriter, r *http.Request) {
+func PostBuyerInitTransaction(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
