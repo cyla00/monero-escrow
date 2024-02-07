@@ -7,7 +7,7 @@ import (
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Print("Executing middlewareOne")
+		log.Print("auth middleware executed")
 		next.ServeHTTP(w, r)
 	})
 }

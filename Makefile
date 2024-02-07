@@ -2,10 +2,10 @@ dev:
 	@templ generate
 	@go run ./cmd/main.go
 
-up:
+pod up:
 	@podman compose up
 
-down:
+pod down:
 	@podman compose down
 
 templ:

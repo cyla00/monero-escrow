@@ -3,25 +3,34 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/a-h/templ"
 	"github.com/cyla00/monero-escrow/middleware"
 	"github.com/cyla00/monero-escrow/routes"
 	"github.com/cyla00/monero-escrow/views"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// statuc GET routes
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Error loading .env file: %s", err)
+	}
+	// ## static routes ##
 	http.Handle("/", templ.Handler(views.Index()))
 	http.Handle("/sign-up", templ.Handler(views.Signup()))
 	http.Handle("/sign-in", templ.Handler(views.Signin()))
 
-	// no AUTH routes
+	// ## no AUTH routes ##
 
-	// AUTH routes
-
-	// authRoutes := http.NewServeMux()
-	http.Handle("/test", middleware.AuthMiddleware(http.HandlerFunc(routes.GetTest)))
+	// ## AUTH routes ##
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-in", http.HandlerFunc(routes.PostLogin))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-up", http.HandlerFunc(routes.PostLogin))
+	// AUTH buyer routes
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/init-transaction", middleware.AuthMiddleware(http.HandlerFunc(routes.PostLogin)))
+	// AUTH seller routes
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/seller/", middleware.AuthMiddleware(http.HandlerFunc(routes.PostLogin)))
 
 	log.Print("http://127.0.0.1:3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))

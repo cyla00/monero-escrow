@@ -1,28 +1,33 @@
 services:
 
-  # postgres:
-  #   image: postgres:latest
-  #   restart: always
-  #   ports:
-  #   - 5432:5432
-  #   environment:
-  #     POSTGRES_DB: escrow_db
-  #     POSTGRES_PASSWORD: password
-  #     POSTGRES_USER: escrow_admin
-  #   volumes:
-  #     - ./sqls/build_db.sql:/docker-entrypoint-initdb.d/build_db.sql
-  #   healthcheck:
-  #     test: “CMD-SHELL pg_isready"
-  #     interval: 1s
-  #     timeout: 5s
-  #     retries: 10
-  
-  monerorpc:
-    image: alpine:latest
+  postgres:
+    image: postgres:latest
     restart: always
-    command: ./monero-wallet-rpc --stagenet --rpc-bind-port 28082 --wallet-dir monero/wallets/main/ --password walletpassword --rpc-login xmruser:xmrpassword --log-file monero/logs/monero-wallet-rpc.log --max-log-files 2 --trusted-daemon --non-interactive 
     ports:
-    - 28080:28082
-    working_dir: /monero
+    - 5432:5432
+    environment:
+      POSTGRES_DB: escrow_db
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: escrow_admin
     volumes:
-    - ./monero:/monero/monero-wallet-rpc
+      - ./sqls/build_db.sql:/docker-entrypoint-initdb.d/build_db.sql
+    healthcheck:
+      test: “CMD-SHELL pg_isready"
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - 6379:6379
+    environment:
+      - ALLOW_EMPTY_PASSWORD=no
+      - REDIS_PASSWORD=redispassword
+      - REDIS_PORT=6379
+    healthcheck:
+      test: [ 'CMD', 'redis-cli', 'ping' ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
