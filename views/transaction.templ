@@ -4,7 +4,15 @@ import "github.com/cyla00/monero-escrow/components"
 templ Transaction(){
     <!DOCTYPE html>
     <html lang="en" class="no-js">
-    @components.Head()
+    <head>
+        <title>FideXMR</title>
+        <meta name="FideXMR page" content="Page description"/>
+        <meta property="og:title" content="Unique page title - My Site"/>
+        <meta property="og:description" content="Page description"/>
+        <meta property="og:url" content="https://www.fidexmr.com/page"/>
+        <link rel="canonical" href="https://www.fidexmr.com/page"/>
+        @components.Head()
+    </head>
 
     <body>
         transaction page with query
