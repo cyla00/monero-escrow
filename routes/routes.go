@@ -20,6 +20,7 @@ func checkPostMethod(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// handlers
 func (db *Dbs) PostSignup(w http.ResponseWriter, r *http.Request) {
 	checkPostMethod(w, r)
 	fmt.Fprintf(w, "login page")

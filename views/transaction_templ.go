@@ -25,7 +25,7 @@ func Transaction() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype html><html lang=\"en\" class=\"no-js\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype html><html lang=\"en\" class=\"no-js\"><head><title>FideXMR</title><meta name=\"FideXMR page\" content=\"Page description\"><meta property=\"og:title\" content=\"Unique page title - My Site\"><meta property=\"og:description\" content=\"Page description\"><meta property=\"og:url\" content=\"https://www.fidexmr.com/page\"><link rel=\"canonical\" href=\"https://www.fidexmr.com/page\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -33,7 +33,7 @@ func Transaction() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<body>transaction page with query</body></html>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</head><body>transaction page with query</body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
