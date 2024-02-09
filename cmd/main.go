@@ -49,8 +49,8 @@ func main() {
 	// ## no AUTH routes ##
 
 	// ## AUTH routes ##
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-in", http.HandlerFunc(dbInject.PostSignin))
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-up", http.HandlerFunc(dbInject.PostSignup))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-in", postRequestMiddleware(http.HandlerFunc(dbInject.PostSignin)))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-up", postRequestMiddleware(http.HandlerFunc(dbInject.PostSignup)))
 
 	// AUTH buyer routes
 	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/init-transaction", authMiddleware(http.HandlerFunc(dbInject.PostBuyerInitTransaction)))       // create contract + deposit
@@ -67,6 +67,36 @@ func main() {
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Print("auth middleware executed")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func postRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "bad request", http.StatusMethodNotAllowed)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func putRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PUT" {
+			http.Error(w, "bad request", http.StatusMethodNotAllowed)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func deleteRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			http.Error(w, "bad request", http.StatusMethodNotAllowed)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }

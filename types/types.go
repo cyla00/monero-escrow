@@ -1,19 +1,25 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/fossoreslp/go-uuid-v4"
+)
 
 type User struct {
-	id       string
+	id       uuid.UUID
 	username string
 	password string
 }
 
 // transaction = new wallet account creation
 type Transaction struct {
-	id              string
-	wallet_address  string
-	balance         float64
-	sending_party   string
-	receiving_party string
-	created_at      time.Time
+	id             uuid.UUID
+	owner_id       uuid.UUID
+	seller_id      uuid.UUID
+	wallet_address string
+	balance        float64
+	fees           float64
+	exp_date       time.Time
+	created_at     time.Time
 }
