@@ -41,17 +41,21 @@ type Dbs struct {
 	Redis *redis.Client
 }
 
-// handlers
 func (db *Dbs) PostSignup(w http.ResponseWriter, r *http.Request) {
 
 	type login struct {
 		Username string
 		Password string
 	}
-	var body login
+	var body *login
 	reqBody, errBody := io.ReadAll(r.Body)
 	if errBody != nil {
-		http.Error(w, "error", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		errMsg := types.JsonResponse{
+			Message: "Error, please retry later",
+		}
+		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
 	json.Unmarshal(reqBody, &body)
@@ -86,8 +90,7 @@ func (db *Dbs) PostSignup(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
-
-	hashedPassword, hashingError := passwords.HashPassword(body.Password)
+	hashedPassword, newSalt, hashingError := passwords.HashPassword(body.Password)
 	if hashingError != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -99,11 +102,12 @@ func (db *Dbs) PostSignup(w http.ResponseWriter, r *http.Request) {
 	}
 	var queryResult types.User
 	userCheckErr := db.Psql.QueryRow(
-		"INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING *;",
-		&body.Username, hashedPassword).Scan(&queryResult.Id, &queryResult.Hash, &queryResult.Username, &queryResult.Password)
+		"INSERT INTO users (username, password, salt) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING *;",
+		&body.Username, hashedPassword, newSalt).Scan(&queryResult.Id, &queryResult.Hash, &queryResult.Username, &queryResult.Password, &queryResult.Salt)
 	if userCheckErr != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
+		fmt.Println(userCheckErr)
 		errMsg := types.JsonResponse{
 			Message: "Error, retry later",
 		}
@@ -118,7 +122,50 @@ func (db *Dbs) PostSignup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (db *Dbs) PostSignin(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "login page")
+	username, password, _ := r.BasicAuth()
+	if username == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		errMsg := types.JsonResponse{
+			Message: "Provide your username",
+		}
+		json.NewEncoder(w).Encode(errMsg)
+		return
+	}
+	if password == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		errMsg := types.JsonResponse{
+			Message: "Provide your password",
+		}
+		json.NewEncoder(w).Encode(errMsg)
+		return
+	}
+
+	var queryResult types.User
+	queryErr := db.Psql.QueryRow(
+		"SELECT * FROM users WHERE username=$1", username).Scan(&queryResult.Id, &queryResult.Hash, &queryResult.Username, &queryResult.Password, &queryResult.Salt)
+	if queryErr != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Println(queryErr)
+		errMsg := types.JsonResponse{
+			Message: "Incorrect credentials",
+		}
+		json.NewEncoder(w).Encode(errMsg)
+		return
+	}
+	passCheck := passwords.CheckPasswords(password, queryResult.Password, queryResult.Salt)
+	if !passCheck {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		errMsg := types.JsonResponse{
+			Message: "Incorrect credentials",
+		}
+		json.NewEncoder(w).Encode(errMsg)
+		return
+	}
+	json.NewEncoder(w).Encode("OK")
 }
 
 func (db *Dbs) PostSellerContractOk(w http.ResponseWriter, r *http.Request) {

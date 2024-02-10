@@ -9,6 +9,7 @@ type User struct {
 	Hash     string
 	Username string
 	Password string
+	Salt     string
 }
 
 // transaction = new wallet account creation

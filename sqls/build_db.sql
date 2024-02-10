@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     hash VARCHAR(36) UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     username VARCHAR UNIQUE NOT NULL,
     password VARCHAR NOT NULL,
+    salt VARCHAR NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -18,21 +19,3 @@ CREATE TABLE IF NOT EXISTS transactions (
     active BOOLEAN NOT NULL,
     PRIMARY KEY (id)
 );
-
-INSERT INTO users ( 
-    username, 
-    password 
-)
-VALUES (
-    'buyeruser', 
-    '$argon2id$v=19$m=16,t=2,p=1$cGFzc3dvcmQ$8vDS3rsezOjrur01dF12EA' -- salt: password
-) ON CONFLICT DO NOTHING;
-
-INSERT INTO users ( 
-    username, 
-    password 
-)
-VALUES (
-    'selleruser', 
-    '$argon2id$v=19$m=16,t=2,p=1$cGFzc3dvcmQ$8vDS3rsezOjrur01dF12EA' -- salt: password
-) ON CONFLICT DO NOTHING;
