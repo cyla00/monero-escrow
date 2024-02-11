@@ -1,15 +1,18 @@
 package routes
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 	"unicode"
 
 	"github.com/cyla00/monero-escrow/passwords"
 	"github.com/cyla00/monero-escrow/types"
+	"github.com/fossoreslp/go-uuid-v4"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -107,9 +110,8 @@ func (db *Dbs) PostSignup(w http.ResponseWriter, r *http.Request) {
 	if userCheckErr != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Println(userCheckErr)
 		errMsg := types.JsonResponse{
-			Message: "Error, retry later",
+			Message: "Username not available",
 		}
 		json.NewEncoder(w).Encode(errMsg)
 		return
@@ -165,7 +167,27 @@ func (db *Dbs) PostSignin(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
-	json.NewEncoder(w).Encode("OK")
+
+	ctx := context.Background()
+	newSessionId, _ := uuid.NewString()
+	hashedSessionId := passwords.Hash256(newSessionId)
+	sessionError := db.Redis.Set(ctx, hashedSessionId, queryResult.Id, 168*time.Hour).Err()
+	if sessionError != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		errMsg := types.JsonResponse{
+			Message: "Error, retry later",
+		}
+		json.NewEncoder(w).Encode(errMsg)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	succMsg := types.JsonResponse{
+		Message: "Connected",
+	}
+	json.NewEncoder(w).Encode(succMsg)
 }
 
 func (db *Dbs) PostSellerContractOk(w http.ResponseWriter, r *http.Request) {

@@ -19,3 +19,15 @@ CREATE TABLE IF NOT EXISTS transactions (
     active BOOLEAN NOT NULL,
     PRIMARY KEY (id)
 );
+
+INSERT INTO users (username, password, salt) VALUES (
+    'seller', 
+    '$argon2id$v=19$m=65536,t=3,p=2$cQ9W81MEJ3PWgvv0HJ+pkg$y9JnqFd95BGFXwF3EZ2z8xa/iAmIGQPDqgi8MjzAOAA', 
+    'cQ9W81MEJ3PWgvv0HJ+pkg'
+) ON CONFLICT DO NOTHING;
+
+INSERT INTO users (username, password, salt) VALUES (
+    'buyer', 
+    '$argon2id$v=19$m=65536,t=3,p=2$KpJ2nx+tZOnu5nsOnKYSQQ$AeuJ4/yDm0aJ8zWDFSMjJnr64oijr3vPDN/JLCvjHb4', 
+    'KpJ2nx+tZOnu5nsOnKYSQQ'
+) ON CONFLICT DO NOTHING;

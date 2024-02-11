@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/cyla00/monero-escrow/routes"
@@ -66,6 +69,11 @@ func main() {
 // authentication middleware
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get("Authorization")
+		ctx := context.Background()
+		var sessonId = strings.Split(header, " ")[1]
+		_, getSession := REDIS.Get(ctx, sessonId).Result()
+		fmt.Println(&getSession)
 		log.Print("auth middleware executed")
 		next.ServeHTTP(w, r)
 	})
