@@ -34,5 +34,6 @@ type Argon2Params struct {
 }
 
 type JsonResponse struct {
+	Succ    bool
 	Message string
 }
