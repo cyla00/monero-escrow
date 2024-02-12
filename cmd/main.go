@@ -1,13 +1,10 @@
 package main
 
 import (
-	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/cyla00/monero-escrow/routes"
@@ -16,9 +13,6 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 )
-
-var PSQL *sql.DB
-var REDIS *redis.Client
 
 func main() {
 	err := godotenv.Load(".env")
@@ -52,59 +46,16 @@ func main() {
 	// ## no AUTH routes ##
 
 	// ## AUTH routes ##
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-in", postRequestMiddleware(http.HandlerFunc(dbInject.PostSignin)))
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-up", postRequestMiddleware(http.HandlerFunc(dbInject.PostSignup)))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-in", routes.PostRequestMiddleware(http.HandlerFunc(dbInject.PostSignin)))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-up", routes.PostRequestMiddleware(http.HandlerFunc(dbInject.PostSignup)))
 
 	// AUTH buyer routes
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/init-transaction", authMiddleware(http.HandlerFunc(dbInject.PostBuyerInitTransaction)))       // create contract + deposit
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/transaction-confirmation", authMiddleware(http.HandlerFunc(dbInject.PostBuyerTransactionOk))) // buyer confirms
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/init-transaction", routes.PostRequestMiddleware(dbInject.AuthMiddleware(http.HandlerFunc(dbInject.PostBuyerInitTransaction))))       // create contract + deposit
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/transaction-confirmation", routes.PostRequestMiddleware(dbInject.AuthMiddleware(http.HandlerFunc(dbInject.PostBuyerTransactionOk)))) // buyer confirms
 
 	// AUTH seller routes
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/seller/verify-contract", authMiddleware(http.HandlerFunc(dbInject.PostSellerContractOk))) // verify contract (yes/no) + 10% hostage deposit
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/seller/verify-contract", routes.PostRequestMiddleware(dbInject.AuthMiddleware(http.HandlerFunc(dbInject.PostSellerContractOk)))) // verify contract (yes/no) + 10% hostage deposit
 
 	log.Print("http://127.0.0.1:3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))
-}
-
-// authentication middleware
-func authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		header := r.Header.Get("Authorization")
-		ctx := context.Background()
-		var sessonId = strings.Split(header, " ")[1]
-		_, getSession := REDIS.Get(ctx, sessonId).Result()
-		fmt.Println(&getSession)
-		log.Print("auth middleware executed")
-		next.ServeHTTP(w, r)
-	})
-}
-
-func postRequestMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			http.Error(w, "bad request", http.StatusMethodNotAllowed)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func putRequestMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "PUT" {
-			http.Error(w, "bad request", http.StatusMethodNotAllowed)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func deleteRequestMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "DELETE" {
-			http.Error(w, "bad request", http.StatusMethodNotAllowed)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }

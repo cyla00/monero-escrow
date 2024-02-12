@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
-	"unicode"
 
 	"github.com/cyla00/monero-escrow/passwords"
 	"github.com/cyla00/monero-escrow/types"
@@ -16,34 +16,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func verifyPassword(s string) (sevenOrMore, number, upper, special bool) {
-	letters := 0
-	for _, c := range s {
-		switch {
-		case unicode.IsNumber(c):
-			number = true
-			letters++
-		case unicode.IsUpper(c):
-			upper = true
-			letters++
-		case unicode.IsPunct(c) || unicode.IsSymbol(c):
-			special = true
-			letters++
-		case unicode.IsLetter(c) || c == ' ':
-			letters++
-		default:
-			return false, false, false, false
-		}
-	}
-	sevenOrMore = letters >= 8
-	return
-}
-
 type Dbs struct {
 	Psql  *sql.DB
 	Redis *redis.Client
 }
 
+// HANDLERS
 func (db *Dbs) PostSignup(w http.ResponseWriter, r *http.Request) {
 
 	type login struct {
@@ -83,7 +61,7 @@ func (db *Dbs) PostSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	size, number, upper, special := verifyPassword(body.Password)
+	size, number, upper, special := passwords.VerifyPassword(body.Password)
 	if !size || !number || !upper || !special {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -150,7 +128,6 @@ func (db *Dbs) PostSignin(w http.ResponseWriter, r *http.Request) {
 	if queryErr != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Println(queryErr)
 		errMsg := types.JsonResponse{
 			Message: "Incorrect credentials",
 		}
@@ -183,6 +160,16 @@ func (db *Dbs) PostSignin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	authCookie := http.Cookie{
+		Name:     "fidexmr",
+		Value:    hashedSessionId,
+		MaxAge:   3600 * 5,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	http.SetCookie(w, &authCookie)
 	w.WriteHeader(http.StatusOK)
 	succMsg := types.JsonResponse{
 		Message: "Connected",
@@ -200,4 +187,53 @@ func (db *Dbs) PostBuyerInitTransaction(w http.ResponseWriter, r *http.Request) 
 
 func (db *Dbs) PostBuyerTransactionOk(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "login page")
+}
+
+// MIDDLEWARES
+func (db *Dbs) AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, cookieErr := r.Cookie("fidexmr")
+		if cookieErr != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		ctx := context.Background()
+		_, getErr := db.Redis.Get(ctx, cookie.Value).Result()
+		if getErr != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		log.Print("auth middleware executed")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func PostRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "bad request", http.StatusMethodNotAllowed)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func PutRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PUT" {
+			http.Error(w, "bad request", http.StatusMethodNotAllowed)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func DeleteRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			http.Error(w, "bad request", http.StatusMethodNotAllowed)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
