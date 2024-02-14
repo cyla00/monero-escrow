@@ -9,13 +9,14 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS transactions (
     id VARCHAR(36) UNIQUE NOT NULL DEFAULT gen_random_uuid(),
-    owner_id uuid UNIQUE NOT NULL,
-    seller_id uuid UNIQUE NOT NULL,
+    owner_id uuid NOT NULL,
+    seller_id uuid,
     wallet_address VARCHAR NOT NULL,
-    balance NUMERIC DEFAULT 0.00 NOT NULL,
+    fiat_amount NUMERIC DEFAULT 0.00 NOT NULL,
+    deposit_amount NUMERIC DEFAULT 0.00 NOT NULL,
     fees NUMERIC DEFAULT 0.00 NOT NULL,
-    exp_date TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
+    exp_date TIMESTAMPTZ NOT NULL DEFAULT now()::timestamptz,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()::timestamptz,
     active BOOLEAN NOT NULL,
     PRIMARY KEY (id)
 );

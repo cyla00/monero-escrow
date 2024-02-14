@@ -9,6 +9,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/cyla00/monero-escrow/routes"
 	"github.com/cyla00/monero-escrow/views"
+	"github.com/icholy/digest"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
@@ -32,9 +33,17 @@ func main() {
 		DB:       0,
 	})
 
-	dbInject := routes.Dbs{
-		Psql:  PSQL,
-		Redis: REDIS,
+	xmrClient := &http.Client{
+		Transport: &digest.Transport{
+			Username: os.Getenv("XMR_USER"),
+			Password: os.Getenv("XMR_PWD"),
+		},
+	}
+
+	Inject := routes.Injection{
+		Psql:      PSQL,
+		Redis:     REDIS,
+		XmrClient: xmrClient,
 	}
 
 	// ## static routes ##
@@ -46,16 +55,16 @@ func main() {
 	// ## no AUTH routes ##
 
 	// ## API routes ##
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-in", routes.PostRequestMiddleware(http.HandlerFunc(dbInject.PostSignin)))
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-up", routes.PostRequestMiddleware(http.HandlerFunc(dbInject.PostSignup)))
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/reset-password", routes.PostRequestMiddleware(http.HandlerFunc(dbInject.PostChangePassword)))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-in", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignin)))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-up", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignup)))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/reset-password", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostChangePassword)))
 
 	// AUTH buyer routes
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/init-transaction", routes.PostRequestMiddleware(dbInject.AuthMiddleware(http.HandlerFunc(dbInject.PostBuyerInitTransaction))))       // create contract + deposit
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/transaction-confirmation", routes.PostRequestMiddleware(dbInject.AuthMiddleware(http.HandlerFunc(dbInject.PostBuyerTransactionOk)))) // buyer confirms
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/init-transaction", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerInitTransaction))))       // create contract + deposit
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/transaction-confirmation", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerTransactionOk)))) // buyer confirms
 
 	// AUTH seller routes
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/seller/verify-contract", routes.PostRequestMiddleware(dbInject.AuthMiddleware(http.HandlerFunc(dbInject.PostSellerContractOk)))) // verify contract (yes/no) + 10% hostage deposit
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/seller/verify-contract", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostSellerContractOk)))) // verify contract (yes/no) + 10% hostage deposit
 
 	log.Print("http://127.0.0.1:3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))
