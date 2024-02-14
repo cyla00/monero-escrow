@@ -33,7 +33,7 @@ func main() {
 		DB:       0,
 	})
 
-	xmrClient := &http.Client{
+	xmrAuthClient := &http.Client{
 		Transport: &digest.Transport{
 			Username: os.Getenv("XMR_USER"),
 			Password: os.Getenv("XMR_PWD"),
@@ -41,9 +41,9 @@ func main() {
 	}
 
 	Inject := routes.Injection{
-		Psql:      PSQL,
-		Redis:     REDIS,
-		XmrClient: xmrClient,
+		Psql:          PSQL,
+		Redis:         REDIS,
+		XmrAuthClient: xmrAuthClient,
 	}
 
 	// ## static routes ##

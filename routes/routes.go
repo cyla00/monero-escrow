@@ -17,9 +17,9 @@ import (
 )
 
 type Injection struct {
-	Psql      *sql.DB
-	Redis     *redis.Client
-	XmrClient *http.Client
+	Psql          *sql.DB
+	Redis         *redis.Client
+	XmrAuthClient *http.Client
 }
 
 type SecretSuccessResponse struct {
@@ -346,7 +346,7 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		"method": "create_account",
 	})
 	responseBody := bytes.NewBuffer(postBody)
-	newXmrAccount, accountErr := inject.XmrClient.Post("http://localhost:28082/json_rpc", "application/json", responseBody)
+	newXmrAccount, accountErr := inject.XmrAuthClient.Post("http://localhost:28082/json_rpc", "application/json", responseBody)
 	if accountErr != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -393,7 +393,32 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
-	json.NewEncoder(w).Encode("OK")
+
+	createUriBody, _ := json.Marshal(map[string]string{
+		"method": "make_uri",
+	})
+	uriBody := bytes.NewBuffer(createUriBody)
+	newXmrUri, uriErr := inject.XmrAuthClient.Post("http://localhost:28082/json_rpc", "application/json", uriBody)
+	if uriErr != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		errMsg := types.JsonResponse{
+			Succ:    false,
+			Message: "Error, please retry later",
+		}
+		json.NewEncoder(w).Encode(errMsg)
+		return
+	}
+
+	type uriType struct {
+		Uri string
+	}
+	var uri uriType
+	fetchUri, _ := io.ReadAll(newXmrUri.Body)
+
+	json.Unmarshal(fetchUri, &uri)
+	fmt.Println(uri)
+	json.NewEncoder(w).Encode(uri)
 }
 
 func (inject *Injection) PostSellerContractOk(w http.ResponseWriter, r *http.Request) {
