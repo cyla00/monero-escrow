@@ -393,13 +393,10 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		return
 	}
 
-	createUriParams := []byte(`{
-		"method": "make_uri",
-		"params": {
-			"address": "55Rf6RTujAy7UiPz9aL3mPT8PoQtgSoB8AWrCmDMkNoucwpJYCbQdnxjXSSZWDFwV9R7yZ8yMh9deH77VmPbjN6G6e4u3um",
-			"amount": 0800000000000
-		}
-	}`)
+	// calculate XMR amount from USD to atomic: (USD price devided by marketprice) divided by 1000000000000
+	depositString := fmt.Sprintf("%f", buyerDeposit)
+	uriBodyString := fmt.Sprintf(`{method: "make_uri", "params":{"address":%s, "amount":%s}}`, xmrResp.Result.Address, depositString)
+	createUriParams := []byte(uriBodyString)
 	newXmrUri, uriErr := inject.XmrAuthClient.Post(moneroRpcUrl, "application/json", bytes.NewBuffer(createUriParams))
 	if uriErr != nil {
 		w.Header().Set("Content-Type", "application/json")
