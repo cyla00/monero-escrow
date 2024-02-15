@@ -28,6 +28,8 @@ type SecretSuccessResponse struct {
 	Secret  string
 }
 
+var moneroRpcUrl = "http://localhost:28082/json_rpc"
+
 // HANDLERS
 
 // ### DONE
@@ -342,11 +344,10 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		return
 	}
 
-	postBody, _ := json.Marshal(map[string]string{
-		"method": "create_account",
-	})
-	responseBody := bytes.NewBuffer(postBody)
-	newXmrAccount, accountErr := inject.XmrAuthClient.Post("http://localhost:28082/json_rpc", "application/json", responseBody)
+	createAccountParams := []byte(`{
+		"method":"create_account"
+	}`)
+	newXmrAccount, accountErr := inject.XmrAuthClient.Post(moneroRpcUrl, "application/json", bytes.NewBuffer(createAccountParams))
 	if accountErr != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -359,7 +360,7 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	}
 
 	type XmrResult struct {
-		AccountIndex int64
+		AccountIndex uint64
 		Address      string
 	}
 	type XmrCreate struct {
@@ -370,7 +371,6 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	var xmrResp XmrCreate
 	xmrResBody, _ := io.ReadAll(newXmrAccount.Body)
 	json.Unmarshal(xmrResBody, &xmrResp)
-
 	userId := r.Context().Value("userId")
 	var calculatedFee = body.FiatAmount * 0.02
 	var buyerDeposit = calculatedFee + body.FiatAmount
@@ -383,7 +383,6 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		false,
 	).Err()
 	if queryErr != nil {
-		fmt.Println(queryErr)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		errMsg := types.JsonResponse{
@@ -394,11 +393,14 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		return
 	}
 
-	createUriBody, _ := json.Marshal(map[string]string{
+	createUriParams := []byte(`{
 		"method": "make_uri",
-	})
-	uriBody := bytes.NewBuffer(createUriBody)
-	newXmrUri, uriErr := inject.XmrAuthClient.Post("http://localhost:28082/json_rpc", "application/json", uriBody)
+		"params": {
+			"address": "55Rf6RTujAy7UiPz9aL3mPT8PoQtgSoB8AWrCmDMkNoucwpJYCbQdnxjXSSZWDFwV9R7yZ8yMh9deH77VmPbjN6G6e4u3um",
+			"amount": 0800000000000
+		}
+	}`)
+	newXmrUri, uriErr := inject.XmrAuthClient.Post(moneroRpcUrl, "application/json", bytes.NewBuffer(createUriParams))
 	if uriErr != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -410,15 +412,19 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		return
 	}
 
-	type uriType struct {
+	type UriResult struct {
 		Uri string
 	}
-	var uri uriType
+	type UriResponse struct {
+		Id      uint64
+		Jsonrpc string
+		Result  UriResult
+	}
+	var uriRes UriResponse
 	fetchUri, _ := io.ReadAll(newXmrUri.Body)
-
-	json.Unmarshal(fetchUri, &uri)
-	fmt.Println(uri)
-	json.NewEncoder(w).Encode(uri)
+	json.Unmarshal(fetchUri, &uriRes)
+	fmt.Println(string(fetchUri))
+	json.NewEncoder(w).Encode(uriRes.Result.Uri)
 }
 
 func (inject *Injection) PostSellerContractOk(w http.ResponseWriter, r *http.Request) {
