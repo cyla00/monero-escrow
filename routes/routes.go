@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
+	moneroapi "github.com/cyla00/monero-escrow/monero-api"
 	"github.com/cyla00/monero-escrow/passwords"
 	"github.com/cyla00/monero-escrow/types"
 	"github.com/fossoreslp/go-uuid-v4"
@@ -414,14 +414,9 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	fetchXmrPrice, _ := io.ReadAll(xmrPrice.Body)
 	var xmrMarketPrices types.XmrMarketPrices
 	json.Unmarshal([]byte(fetchXmrPrice), &xmrMarketPrices)
-	var depositString = buyerDeposit / xmrMarketPrices.USD
-	depositXmrAmount := fmt.Sprintf("%f", depositString)
-	split := strings.Split(depositXmrAmount, ".")
-	join := strings.Join(split, " ")
-	rawXmrDeposit := strings.ReplaceAll(join, " ", "")
-	fmt.Println(rawXmrDeposit)
+	deposit := moneroapi.FiatToXmrMarketprice(buyerDeposit, xmrMarketPrices.USD)
 
-	uriBodyString := fmt.Sprintf(`{method: "make_uri", "params":{"address":%s, "amount":%s}}`, xmrResp.Result.Address, rawXmrDeposit)
+	uriBodyString := fmt.Sprintf(`{"method": "make_uri", "params":{"address":"%s", "amount":"%s"}}`, xmrResp.Result.Address, deposit)
 	createUriParams := []byte(uriBodyString)
 	newXmrUri, uriErr := inject.XmrAuthClient.Post(moneroRpcUrl, "application/json", bytes.NewBuffer(createUriParams))
 	if uriErr != nil {
@@ -446,7 +441,9 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	var uriRes UriResponse
 	fetchUri, _ := io.ReadAll(newXmrUri.Body)
 	json.Unmarshal(fetchUri, &uriRes)
-	fmt.Println(string(fetchUri))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(uriRes.Result.Uri)
 }
 
