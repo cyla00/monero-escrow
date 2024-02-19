@@ -37,3 +37,9 @@ type JsonResponse struct {
 	Succ    bool
 	Message string
 }
+
+type XmrMarketPrices struct {
+	USD float64
+	EUR float64
+	GBP float64
+}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/cyla00/monero-escrow/passwords"
@@ -374,13 +375,18 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	userId := r.Context().Value("userId")
 	var calculatedFee = body.FiatAmount * 0.02
 	var buyerDeposit = calculatedFee + body.FiatAmount
-	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (owner_id, wallet_address, fiat_amount, deposit_amount, fees, active) VALUES ($1, $2, $3, $4, $5, $6)",
+
+	now := time.Now()
+
+	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (owner_id, transaction_address, fiat_amount, deposit_amount, fees, active, exp_date, deposit_exp_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		&userId,
 		&xmrResp.Result.Address,
 		&body.FiatAmount,
 		&buyerDeposit,
 		&calculatedFee,
 		false,
+		now.Add(time.Hour*168), // 7 days for transaction validity
+		now.Add(time.Minute*5), // 5 minutes to deposit
 	).Err()
 	if queryErr != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -393,9 +399,29 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		return
 	}
 
-	// calculate XMR amount from USD to atomic: (USD price devided by marketprice) divided by 1000000000000
-	depositString := fmt.Sprintf("%f", buyerDeposit)
-	uriBodyString := fmt.Sprintf(`{method: "make_uri", "params":{"address":%s, "amount":%s}}`, xmrResp.Result.Address, depositString)
+	xmrPrice, xmrPriceErr := inject.XmrAuthClient.Get("https://min-api.cryptocompare.com/data/price?fsym=XMR&tsyms=USD,EUR,GBP")
+	if xmrPriceErr != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		errMsg := types.JsonResponse{
+			Succ:    false,
+			Message: "Error, please retry later",
+		}
+		json.NewEncoder(w).Encode(errMsg)
+		return
+	}
+
+	fetchXmrPrice, _ := io.ReadAll(xmrPrice.Body)
+	var xmrMarketPrices types.XmrMarketPrices
+	json.Unmarshal([]byte(fetchXmrPrice), &xmrMarketPrices)
+	var depositString = buyerDeposit / xmrMarketPrices.USD
+	depositXmrAmount := fmt.Sprintf("%f", depositString)
+	split := strings.Split(depositXmrAmount, ".")
+	join := strings.Join(split, " ")
+	rawXmrDeposit := strings.ReplaceAll(join, " ", "")
+	fmt.Println(rawXmrDeposit)
+
+	uriBodyString := fmt.Sprintf(`{method: "make_uri", "params":{"address":%s, "amount":%s}}`, xmrResp.Result.Address, rawXmrDeposit)
 	createUriParams := []byte(uriBodyString)
 	newXmrUri, uriErr := inject.XmrAuthClient.Post(moneroRpcUrl, "application/json", bytes.NewBuffer(createUriParams))
 	if uriErr != nil {
@@ -447,6 +473,13 @@ func (inject *Injection) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		r = r.WithContext(context.WithValue(r.Context(), "userId", id))
+		next.ServeHTTP(w, r)
+	})
+}
+
+func CheckTransactionExpirationDate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check in db if transaction operation still valid
 		next.ServeHTTP(w, r)
 	})
 }
