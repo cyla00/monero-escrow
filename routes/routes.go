@@ -346,7 +346,8 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	}
 
 	createAccountParams := []byte(`{
-		"method":"create_account"
+		"method":"create_account",
+		"params":{"label":"fidexmr-transaction"}
 	}`)
 	newXmrAccount, accountErr := inject.XmrAuthClient.Post(moneroRpcUrl, "application/json", bytes.NewBuffer(createAccountParams))
 	if accountErr != nil {
