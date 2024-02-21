@@ -316,6 +316,7 @@ func (inject *Injection) PostChangePassword(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(succMsg)
 }
 
+// ### HALF DONE
 func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http.Request) {
 	type transactionBody struct {
 		FiatAmount float64
@@ -432,20 +433,17 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	}
 
 	type UriResult struct {
-		Uri string
+		Uri        string
+		SharedLink string
 	}
-	type UriResponse struct {
-		Id      uint64
-		Jsonrpc string
-		Result  UriResult
-	}
-	var uriRes UriResponse
+	var uriRes UriResult
 	fetchUri, _ := io.ReadAll(newXmrUri.Body)
 	json.Unmarshal(fetchUri, &uriRes)
+	uriRes.SharedLink = "http://" // create url to send to second party
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(uriRes.Result.Uri)
+	json.NewEncoder(w).Encode(uriRes)
 }
 
 func (inject *Injection) PostSellerContractOk(w http.ResponseWriter, r *http.Request) {
