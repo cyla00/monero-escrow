@@ -41,7 +41,7 @@ func NotFound() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<h1 class=\"text-red-700\">Not found</h1><button hx-post=\"/clicked\" hx-trigger=\"mouseenter\" hx-target=\"#parent-div\" hx-swap=\"outerHTML\">Click Me!</button>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<h1 class=\"text-red-500\">Not found</h1>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

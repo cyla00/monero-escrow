@@ -50,6 +50,7 @@ func main() {
 	var baseApiUrl = fmt.Sprintf("/api/%s", os.Getenv("API_VERSION"))
 
 	// ## static routes ##
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetIndexView)))
 	http.Handle("/404", routes.GetRequestMiddleware(templ.Handler(views.NotFound(), templ.WithStatus(http.StatusNotFound))))
 	http.Handle("/sign-up", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetSignupView)))

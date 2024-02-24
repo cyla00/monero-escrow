@@ -13,7 +13,7 @@ templ:
 	@templ generate
 
 tailwind:
-	@./tailwindcss -i input.css -o output.css --watch
+	@./tailwindcss -i static/input.css -o static/output.css --watch
 
 stagenet create:
 	@./monero-wallet-rpc --stagenet --rpc-bind-port 28082 --wallet-dir monero/wallets/main/ --password walletpassword --rpc-login xmruser:xmrpassword --log-file monero/logs/monero-wallet-rpc.log --max-log-files 2 --trusted-daemon --daemon-address http://node.monerodevs.org:38089 --non-interactive
