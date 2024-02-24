@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS transactions (
     id VARCHAR(36) UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+    transaction_url VARCHAR NOT NULL,
     owner_id uuid NOT NULL,
     seller_id uuid,
     transaction_address VARCHAR NOT NULL,

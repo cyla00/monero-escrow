@@ -57,7 +57,7 @@ func main() {
 	// ## API routes ##
 	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-in", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignin)))
 	http.Handle("/api"+os.Getenv("API_VERSION")+"/sign-up", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignup)))
-	http.Handle("/api"+os.Getenv("API_VERSION")+"/reset-password", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostChangePassword)))
+	http.Handle("/api"+os.Getenv("API_VERSION")+"/reset-password", routes.PutRequestMiddleware(http.HandlerFunc(Inject.PostChangePassword)))
 
 	// AUTH buyer routes
 	http.Handle("/api"+os.Getenv("API_VERSION")+"/buyer/init-transaction", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerInitTransaction))))       // create contract + deposit

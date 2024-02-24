@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	moneroapi "github.com/cyla00/monero-escrow/monero-api"
@@ -316,7 +318,7 @@ func (inject *Injection) PostChangePassword(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(succMsg)
 }
 
-// ### HALF DONE
+// ### DONE, result is payment url and transaction url
 func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http.Request) {
 	type transactionBody struct {
 		FiatAmount float64
@@ -380,7 +382,27 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 
 	now := time.Now()
 
-	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (owner_id, transaction_address, fiat_amount, deposit_amount, fees, active, exp_date, deposit_exp_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+	url, err := url.Parse(r.Host)
+	if err != nil {
+		log.Fatal(err)
+	}
+	transactionId, trIdErr := uuid.NewString()
+	var transactionUrl = fmt.Sprintf("http://%s/transaction?id=%s", url, transactionId) // create url to send to second party
+
+	if trIdErr != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		errMsg := types.JsonResponse{
+			Succ:    false,
+			Message: "Error, please retry later",
+		}
+		json.NewEncoder(w).Encode(errMsg)
+		return
+	}
+
+	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (id, transaction_url, owner_id, transaction_address, fiat_amount, deposit_amount, fees, active, exp_date, deposit_exp_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);",
+		&transactionId,
+		&transactionUrl,
 		&userId,
 		&xmrResp.Result.Address,
 		&body.FiatAmount,
@@ -432,18 +454,29 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		return
 	}
 
-	type UriResult struct {
-		Uri        string
-		SharedLink string
+	type FinalResult struct {
+		Uri            string
+		TransactionUrl string
 	}
-	var uriRes UriResult
+	type InnerResult struct {
+		Uri string
+	}
+	type XmrUriResult struct {
+		Id      int
+		Jsonrpc string
+		Result  InnerResult
+	}
+	var xmrLink *XmrUriResult
 	fetchUri, _ := io.ReadAll(newXmrUri.Body)
-	json.Unmarshal(fetchUri, &uriRes)
-	uriRes.SharedLink = "http://" // create url to send to second party
-
+	json.Unmarshal(fetchUri, &xmrLink)
+	fmt.Println(xmrLink.Result.Uri)
+	var finalResult FinalResult = FinalResult{
+		Uri:            xmrLink.Result.Uri,
+		TransactionUrl: transactionUrl,
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(uriRes)
+	json.NewEncoder(w).Encode(finalResult)
 }
 
 func (inject *Injection) PostSellerContractOk(w http.ResponseWriter, r *http.Request) {
