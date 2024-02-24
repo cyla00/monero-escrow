@@ -15,6 +15,7 @@ import (
 	moneroapi "github.com/cyla00/monero-escrow/monero-api"
 	"github.com/cyla00/monero-escrow/passwords"
 	"github.com/cyla00/monero-escrow/types"
+	"github.com/cyla00/monero-escrow/views"
 	"github.com/fossoreslp/go-uuid-v4"
 	"github.com/redis/go-redis/v9"
 )
@@ -34,8 +35,24 @@ type SecretSuccessResponse struct {
 var moneroRpcUrl = "http://localhost:28082/json_rpc"
 
 // HANDLERS
+// GET
+func (inject *Injection) GetIndexView(w http.ResponseWriter, r *http.Request) {
+	views.Index().Render(r.Context(), w)
+}
 
-// ### DONE
+func (inject *Injection) GetSignupView(w http.ResponseWriter, r *http.Request) {
+	views.Signup().Render(r.Context(), w)
+}
+
+func (inject *Injection) GetSigninView(w http.ResponseWriter, r *http.Request) {
+	views.Signin().Render(r.Context(), w)
+}
+
+func (inject *Injection) GetTransactionPayment(w http.ResponseWriter, r *http.Request) {
+	views.Transaction().Render(r.Context(), w)
+}
+
+// POST
 func (inject *Injection) PostSignup(w http.ResponseWriter, r *http.Request) {
 
 	type login struct {
@@ -140,7 +157,6 @@ func (inject *Injection) PostSignup(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(succMsg)
 }
 
-// ### DONE
 func (inject *Injection) PostSignin(w http.ResponseWriter, r *http.Request) {
 	username, password, _ := r.BasicAuth()
 	if username == "" {
@@ -223,7 +239,6 @@ func (inject *Injection) PostSignin(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(succMsg)
 }
 
-// ### DONE
 func (inject *Injection) PostChangePassword(w http.ResponseWriter, r *http.Request) {
 	type changePasswordType struct {
 		NewPassword string
@@ -318,7 +333,6 @@ func (inject *Injection) PostChangePassword(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(succMsg)
 }
 
-// ### DONE, result is payment url and transaction url
 func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http.Request) {
 	type transactionBody struct {
 		FiatAmount float64
@@ -509,6 +523,16 @@ func (inject *Injection) AuthMiddleware(next http.Handler) http.Handler {
 func CheckTransactionExpirationDate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check in db if transaction operation still valid
+		next.ServeHTTP(w, r)
+	})
+}
+
+func GetRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			http.Error(w, "bad request", http.StatusMethodNotAllowed)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
