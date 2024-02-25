@@ -308,14 +308,15 @@ func (inject *Injection) PutChangePassword(w http.ResponseWriter, r *http.Reques
 		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
-
+	var returnHash string
 	updateUserErr := inject.Psql.QueryRow(
-		"UPDATE users SET password=$1, salt=$2, hash=$3 WHERE hash=$4;",
+		"UPDATE users SET password=$1, salt=$2, hash=$3 WHERE hash=$4 RETURNING hash;",
 		&newHashedPassword,
 		&newSalt,
 		&hashedUserSecret,
 		&oldUserHash,
-	).Err()
+	).Scan(&returnHash)
+
 	if updateUserErr != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
