@@ -51,18 +51,18 @@ func main() {
 
 	// ## static routes ##
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	// ## view handlers ##
 	http.Handle("/", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetIndexView)))
 	http.Handle("/404", routes.GetRequestMiddleware(templ.Handler(views.NotFound(), templ.WithStatus(http.StatusNotFound))))
 	http.Handle("/sign-up", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetSignupView)))
 	http.Handle("/sign-in", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetSigninView)))
-	http.Handle("/transaction", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetTransactionPayment))) // accepts query ?id=transaction-id
-
-	// ## no AUTH routes ##
+	http.Handle("/transaction", routes.GetRequestMiddleware(Inject.CheckTransactionExpirationDate(http.HandlerFunc(Inject.GetTransactionPayment)))) // accepts query ?id=transaction-id
 
 	// ## API routes ##
 	http.Handle(baseApiUrl+"/sign-in", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignin)))
 	http.Handle(baseApiUrl+"/sign-up", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignup)))
-	http.Handle(baseApiUrl+"/reset-password", routes.PutRequestMiddleware(http.HandlerFunc(Inject.PostChangePassword)))
+	http.Handle(baseApiUrl+"/reset-password", routes.PutRequestMiddleware(http.HandlerFunc(Inject.PutChangePassword)))
 
 	// AUTH buyer routes
 	http.Handle(baseApiUrl+"/buyer/init-transaction", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerInitTransaction))))       // create contract + deposit

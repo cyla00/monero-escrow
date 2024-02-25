@@ -49,6 +49,7 @@ func (inject *Injection) GetSigninView(w http.ResponseWriter, r *http.Request) {
 }
 
 func (inject *Injection) GetTransactionPayment(w http.ResponseWriter, r *http.Request) {
+	// get transaction data from param id to show in page
 	views.Transaction().Render(r.Context(), w)
 }
 
@@ -239,7 +240,7 @@ func (inject *Injection) PostSignin(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(succMsg)
 }
 
-func (inject *Injection) PostChangePassword(w http.ResponseWriter, r *http.Request) {
+func (inject *Injection) PutChangePassword(w http.ResponseWriter, r *http.Request) {
 	type changePasswordType struct {
 		NewPassword string
 		UserHash    string
@@ -296,6 +297,7 @@ func (inject *Injection) PostChangePassword(w http.ResponseWriter, r *http.Reque
 	newUserHash, userHashErr := uuid.NewString()
 	hashedUserSecret := passwords.Hash256(newUserHash)
 	oldUserHash := passwords.Hash256(body.UserHash)
+
 	if hashErr != nil || userHashErr != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -306,6 +308,7 @@ func (inject *Injection) PostChangePassword(w http.ResponseWriter, r *http.Reque
 		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
+
 	updateUserErr := inject.Psql.QueryRow(
 		"UPDATE users SET password=$1, salt=$2, hash=$3 WHERE hash=$4;",
 		&newHashedPassword,
@@ -520,9 +523,11 @@ func (inject *Injection) AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func CheckTransactionExpirationDate(next http.Handler) http.Handler {
+func (inject *Injection) CheckTransactionExpirationDate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// check in db if transaction operation still valid
+		// check in db if transaction operation still valid in time
+		transactionId := r.URL.Query().Get("id")
+		println(transactionId)
 		next.ServeHTTP(w, r)
 	})
 }
