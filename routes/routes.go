@@ -427,7 +427,7 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		&buyerDeposit,
 		&calculatedFee,
 		false,
-		now.Add(time.Hour*24), // 24 hours for transaction validity
+		now.Add(time.Hour*4), // 4 hours for transaction validity
 	).Err()
 	if queryErr != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -522,20 +522,22 @@ func (inject *Injection) AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (inject *Injection) CheckDepositExpirationDate(next http.Handler) http.Handler {
+func (inject *Injection) CheckTransactionExpTime(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// check in db if transaction operation still valid in time
 		transactionId := r.URL.Query().Get("id")
-		println(transactionId)
 
 		var expDate time.Time
-		dbErr := inject.Psql.QueryRow("SELECT deposit_exp_date FROM transactions WHERE id=$1", &transactionId).Scan(&expDate)
+		dbErr := inject.Psql.QueryRow("SELECT exp_date FROM transactions WHERE id=$1", &transactionId).Scan(&expDate)
 		if dbErr != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		// r = r.WithContext(context.WithValue(r.Context(), "deposit_exp", &expDate))
-		fmt.Println(expDate)
+
+		checkDate := expDate.Before(time.Now())
+		if checkDate {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }

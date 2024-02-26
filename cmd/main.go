@@ -57,7 +57,7 @@ func main() {
 	http.Handle("/404", routes.GetRequestMiddleware(templ.Handler(views.NotFound(), templ.WithStatus(http.StatusNotFound))))
 	http.Handle("/sign-up", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetSignupView)))
 	http.Handle("/sign-in", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetSigninView)))
-	http.Handle("/transaction", routes.GetRequestMiddleware(Inject.CheckDepositExpirationDate(http.HandlerFunc(Inject.GetTransactionPayment)))) // accepts query ?id=transaction-id
+	http.Handle("/transaction", routes.GetRequestMiddleware(Inject.CheckTransactionExpTime(http.HandlerFunc(Inject.GetTransactionPayment)))) // accepts query ?id=transaction-id
 
 	// ## API routes ##
 	http.Handle(baseApiUrl+"/sign-in", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignin)))
