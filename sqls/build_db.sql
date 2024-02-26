@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     withdraw_address VARCHAR,
     fiat_amount NUMERIC DEFAULT 0.00 NOT NULL,
     deposit_amount NUMERIC DEFAULT 0.00 NOT NULL,
-    deposit_exp_date TIMESTAMPTZ NOT NULL,
     fees NUMERIC DEFAULT 0.00 NOT NULL,
     exp_date TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()::timestamptz,

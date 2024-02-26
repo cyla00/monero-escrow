@@ -418,7 +418,7 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		return
 	}
 
-	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (id, transaction_url, owner_id, transaction_address, fiat_amount, deposit_amount, fees, active, exp_date, deposit_exp_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);",
+	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (id, transaction_url, owner_id, transaction_address, fiat_amount, deposit_amount, fees, active, exp_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
 		&transactionId,
 		&transactionUrl,
 		&userId,
@@ -427,8 +427,7 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		&buyerDeposit,
 		&calculatedFee,
 		false,
-		now.Add(time.Hour*168), // 7 days for transaction validity
-		now.Add(time.Minute*5), // 5 minutes to deposit
+		now.Add(time.Hour*24), // 24 hours for transaction validity
 	).Err()
 	if queryErr != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -487,7 +486,6 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	var xmrLink *XmrUriResult
 	fetchUri, _ := io.ReadAll(newXmrUri.Body)
 	json.Unmarshal(fetchUri, &xmrLink)
-	fmt.Println(xmrLink.Result.Uri)
 	var finalResult FinalResult = FinalResult{
 		Uri:            xmrLink.Result.Uri,
 		TransactionUrl: transactionUrl,
@@ -524,11 +522,20 @@ func (inject *Injection) AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (inject *Injection) CheckTransactionExpirationDate(next http.Handler) http.Handler {
+func (inject *Injection) CheckDepositExpirationDate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check in db if transaction operation still valid in time
 		transactionId := r.URL.Query().Get("id")
 		println(transactionId)
+
+		var expDate time.Time
+		dbErr := inject.Psql.QueryRow("SELECT deposit_exp_date FROM transactions WHERE id=$1", &transactionId).Scan(&expDate)
+		if dbErr != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		// r = r.WithContext(context.WithValue(r.Context(), "deposit_exp", &expDate))
+		fmt.Println(expDate)
 		next.ServeHTTP(w, r)
 	})
 }
