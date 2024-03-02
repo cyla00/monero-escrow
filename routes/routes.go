@@ -18,6 +18,8 @@ import (
 	"github.com/cyla00/monero-escrow/views"
 	"github.com/fossoreslp/go-uuid-v4"
 	"github.com/redis/go-redis/v9"
+	"nhooyr.io/websocket"
+	"nhooyr.io/websocket/wsjson"
 )
 
 type Injection struct {
@@ -50,7 +52,24 @@ func (inject *Injection) GetSigninView(w http.ResponseWriter, r *http.Request) {
 
 func (inject *Injection) GetTransactionPayment(w http.ResponseWriter, r *http.Request) {
 	// get transaction data from param id to show in page
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	c, _, err := websocket.Dial(ctx, "ws://localhost:3000/api/v0.1/check-deposit", nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer c.CloseNow()
+
 	views.Transaction().Render(r.Context(), w)
+
+	err = wsjson.Write(ctx, c, "msg from transaction page")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// c.Close(websocket.StatusNormalClosure, "")
+
 }
 
 // POST, PUT, DELETE
@@ -417,7 +436,7 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
-	fmt.Println(xmrResp)
+
 	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (id, account_index, transaction_url, owner_id, transaction_address, fiat_amount, deposit_amount, fees, active, exp_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);",
 		&transactionId,
 		&xmrResp.Result.Account_Index,
@@ -497,7 +516,22 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 }
 
 func (inject *Injection) PostCheckDeposit(w http.ResponseWriter, r *http.Request) {
+	wsClient, wsErr := websocket.Accept(w, r, nil)
+	if wsErr != nil {
+		fmt.Println(wsErr)
+	}
+	defer wsClient.CloseNow()
 
+	ctx, cancel := context.WithTimeout(r.Context(), time.Minute*15)
+	defer cancel()
+
+	var v interface{}
+	err := wsjson.Read(ctx, wsClient, &v)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(v)
+	// wsClient.Close(websocket.StatusNormalClosure, "")
 }
 
 func (inject *Injection) PutSellerContractOk(w http.ResponseWriter, r *http.Request) {
