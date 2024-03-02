@@ -53,7 +53,7 @@ func (inject *Injection) GetTransactionPayment(w http.ResponseWriter, r *http.Re
 	views.Transaction().Render(r.Context(), w)
 }
 
-// POST
+// POST, PUT, DELETE
 func (inject *Injection) PostSignup(w http.ResponseWriter, r *http.Request) {
 
 	type login struct {
@@ -383,15 +383,15 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	}
 
 	type XmrResult struct {
-		AccountIndex uint64
-		Address      string
+		Account_Index uint32
+		Address       string
 	}
 	type XmrCreate struct {
-		Id      string
+		Id      uint32
 		Jsonrpc string
 		Result  XmrResult
 	}
-	var xmrResp XmrCreate
+	var xmrResp *XmrCreate
 	xmrResBody, _ := io.ReadAll(newXmrAccount.Body)
 	json.Unmarshal(xmrResBody, &xmrResp)
 	userId := r.Context().Value("userId")
@@ -417,9 +417,10 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
-
-	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (id, transaction_url, owner_id, transaction_address, fiat_amount, deposit_amount, fees, active, exp_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
+	fmt.Println(xmrResp)
+	queryErr := inject.Psql.QueryRow("INSERT INTO transactions (id, account_index, transaction_url, owner_id, transaction_address, fiat_amount, deposit_amount, fees, active, exp_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);",
 		&transactionId,
+		&xmrResp.Result.Account_Index,
 		&transactionUrl,
 		&userId,
 		&xmrResp.Result.Address,
@@ -493,6 +494,10 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(finalResult)
+}
+
+func (inject *Injection) PostCheckDeposit(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func (inject *Injection) PutSellerContractOk(w http.ResponseWriter, r *http.Request) {
