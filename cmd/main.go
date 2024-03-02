@@ -69,7 +69,7 @@ func main() {
 	http.Handle(baseApiUrl+"/buyer/transaction-confirmation", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerTransactionOk)))) // buyer confirms
 
 	// AUTH seller routes
-	http.Handle(baseApiUrl+"/seller/verify-contract", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostSellerContractOk)))) // verify contract (yes/no) + 10% hostage deposit
+	http.Handle(baseApiUrl+"/seller/verify-contract", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PutSellerContractOk)))) // verify contract (yes/no) + 10% hostage deposit
 
 	log.Print("http://127.0.0.1:3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))

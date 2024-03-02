@@ -495,7 +495,7 @@ func (inject *Injection) PostBuyerInitTransaction(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(finalResult)
 }
 
-func (inject *Injection) PostSellerContractOk(w http.ResponseWriter, r *http.Request) {
+func (inject *Injection) PutSellerContractOk(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "login page")
 }
 

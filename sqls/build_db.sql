@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     fiat_amount NUMERIC DEFAULT 0.00 NOT NULL,
     deposit_amount NUMERIC DEFAULT 0.00 NOT NULL,
     fees NUMERIC DEFAULT 0.00 NOT NULL,
-    exp_date TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()::timestamptz,
+    exp_date TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()::timestamp,
     active BOOLEAN NOT NULL,
     PRIMARY KEY (id)
 );
