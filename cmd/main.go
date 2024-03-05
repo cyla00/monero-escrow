@@ -67,7 +67,7 @@ func main() {
 	// AUTH buyer routes
 	http.Handle(baseApiUrl+"/buyer/init-transaction", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerInitTransaction))))       // create contract + deposit
 	http.Handle(baseApiUrl+"/buyer/transaction-confirmation", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerTransactionOk)))) // buyer confirms
-	http.Handle(baseApiUrl+"/check-deposit", http.HandlerFunc(Inject.PostCheckDeposit))                                                                             // checks every 2 seconds if the deposit is OK
+	http.Handle("/check-deposit", http.HandlerFunc(Inject.PostCheckDeposit))                                                                                        // checks every 2 seconds if the deposit is OK
 
 	// AUTH seller routes
 	http.Handle(baseApiUrl+"/seller/verify-contract", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PutSellerContractOk)))) // verify contract (yes/no) + 10% hostage deposit

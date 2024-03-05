@@ -33,7 +33,7 @@ func Transaction() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</head><body>transaction page with query<div hx-ws=\"connect:ws:/check-deposit\"><div id=\"chat_room\">test</div><form hx-ws=\"send:submit\"><input name=\"chat_message\"></form></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</head><body>transaction page with query")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
