@@ -55,22 +55,14 @@ func main() {
 	// ## view handlers ##
 	http.Handle("/", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetIndexView)))
 	http.Handle("/404", routes.GetRequestMiddleware(templ.Handler(views.NotFound(), templ.WithStatus(http.StatusNotFound))))
-	http.Handle("/sign-up", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetSignupView)))
-	http.Handle("/sign-in", routes.GetRequestMiddleware(http.HandlerFunc(Inject.GetSigninView)))
 	http.Handle("/transaction", routes.GetRequestMiddleware(Inject.CheckTransactionExpTime(http.HandlerFunc(Inject.GetTransactionPayment)))) // accepts query ?id=transaction-id
 
-	// ## API routes ##
-	http.Handle(baseApiUrl+"/sign-in", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignin)))
-	http.Handle(baseApiUrl+"/sign-up", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostSignup)))
-	http.Handle(baseApiUrl+"/reset-password", routes.PutRequestMiddleware(http.HandlerFunc(Inject.PutChangePassword)))
-
 	// AUTH buyer routes
-	http.Handle(baseApiUrl+"/buyer/init-transaction", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerInitTransaction))))       // create contract + deposit
-	http.Handle(baseApiUrl+"/buyer/transaction-confirmation", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PostBuyerTransactionOk)))) // buyer confirms
-	http.Handle("/check-deposit", http.HandlerFunc(Inject.PostCheckDeposit))                                                                                        // checks every 2 seconds if the deposit is OK
+	http.Handle(baseApiUrl+"/buyer/init-transaction", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostBuyerInitTransaction)))       // create contract + deposit
+	http.Handle(baseApiUrl+"/buyer/transaction-confirmation", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PostBuyerTransactionOk))) // buyer confirms
 
 	// AUTH seller routes
-	http.Handle(baseApiUrl+"/seller/verify-contract", routes.PostRequestMiddleware(Inject.AuthMiddleware(http.HandlerFunc(Inject.PutSellerContractOk)))) // verify contract (yes/no) + 10% hostage deposit
+	http.Handle(baseApiUrl+"/seller/verify-contract", routes.PostRequestMiddleware(http.HandlerFunc(Inject.PutSellerContractOk))) // verify contract (yes/no) + 10% hostage deposit
 
 	log.Print("http://127.0.0.1:3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))

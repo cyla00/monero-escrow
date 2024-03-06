@@ -1,5 +1,8 @@
 package views
-import "github.com/cyla00/monero-escrow/components"
+import (
+    "github.com/cyla00/monero-escrow/components"
+    "os"
+    )
 
 templ Index(){
     <!DOCTYPE html>
@@ -16,9 +19,9 @@ templ Index(){
     
     <body>
         @components.Header()
-        <div hx-ext="sse" sse-connect="/check-deposit" sse-swap="message">
-            Contents of this box will be updated in real time with every SSE message received from the chatroom.
-        </div>
+        <form hx-post={"/api/" + os.Getenv("API_VERSION") + "/init-transaction" } class="">
+        <button class="btn btn-default">Submit</button>
+        </form>
         @components.Footer()
     </body>
     </html>
